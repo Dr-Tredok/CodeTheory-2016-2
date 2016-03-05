@@ -10,6 +10,8 @@ class Polynomial(object):
 
     def sum(self, poly):
         """Return the sum self + poly over Zp[x]"""
+        if self.prime != poly.prime:
+            raise Exception("!= prime")
         # Suma self.coefficients[i] + poly.coefficients[i] % prime
         pass
 
@@ -36,13 +38,14 @@ class Polynomial(object):
 
     def __eq__(self, other):
         if type(self) is type(other):
-            # self.coefficients % prime == other.coefficients % prime
-            return self.coefficients == other.coefficients and self.prime == other.prime
+            return [x % prime for x in self.coefficients] == [x % prime for x in other.coefficients] and self.prime == other.prime
         return False
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def degree(self):
+        return len(self.coefficients) - 1
 
 class PolynomialZ2(Polynomial):
     """A Polynomial w/coefficients in Z2"""
@@ -56,7 +59,7 @@ class PolynomialZ2(Polynomial):
 
     def set_poly(self, coefficients):
         """@param coefficients is a string '100101' equiv to 1 + x² + x⁵"""
-        # type int has 32 bits
+        # 32 bits per element
         s_bytes = math.ceil(len(coefficients) / 32)
         # :B
         if s_bytes > 1:
@@ -65,6 +68,10 @@ class PolynomialZ2(Polynomial):
         self.coefficients = int(coefficients, 2)
         self.bin_representation = coefficients
 
+    def degree(self):
+        return len(self.coefficients_vector()) - 1
+
+    # XOR
     def sum(self, poly):
         p = PolynomialZ2()
         p.coefficients = self.coefficients ^ poly.coefficients
@@ -73,7 +80,7 @@ class PolynomialZ2(Polynomial):
 
     def product(self, poly):
         # degree of poly
-        degree = len(self.coefficients_vector()) - 1
+        degree = self.degree()
 
         p = PolynomialZ2()
 
@@ -85,17 +92,11 @@ class PolynomialZ2(Polynomial):
 
         return p
 
-    # Safe poly.coefficients_vector
-    # Unsafe poly.bin_representation
-    def coefficients_vector(self):
-        if self.bin_representation == '':
-            self.bin_representation = bin(self.coefficients).lstrip('-0b')
-        return self.bin_representation
-
+    # self % poly
     def remainder(self, poly):
         # get degree of both
-        degree_poly = len(poly.coefficients_vector())
-        degree = len(self.coefficients_vector())
+        degree_poly = self.degree()
+        degree = self.degree()
 
         p = PolynomialZ2()
         coefficients = poly.coefficients # xor later
@@ -110,6 +111,13 @@ class PolynomialZ2(Polynomial):
         p.coefficients = self.coefficients ^ coefficients
 
         return p
+
+    # Safe poly.coefficients_vector
+    # Unsafe poly.bin_representation
+    def coefficients_vector(self):
+        if self.bin_representation == '':
+            self.bin_representation = bin(self.coefficients).lstrip('-0b')
+        return self.bin_representation
 
     # String representation
     def __str__(self):
