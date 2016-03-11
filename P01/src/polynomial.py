@@ -49,49 +49,92 @@ class Polynomial(object):
 
 class PolynomialZ2(Polynomial):
     """A Polynomial w/coefficients in Z2"""
+
+    SIZE = 2 # bits per element
+
     def __init__(self, coefficients = None):
         super(PolynomialZ2, self).__init__(2)
-        if coefficients is None:
-            self.coefficients = 0
-            self.bin_representation = '' # is set when coefficients_vector is called
+        if coefficients is None: # default is zero
+            self.coefficients = [0]
+            self.degree = 0
+            self.bin_representation = '0'
+            self.__length = 1
         else:
+            self.coefficients = []
             self.set_poly(coefficients)
 
     def set_poly(self, coefficients):
         """@param coefficients is a string '100101' equiv to 1 + x² + x⁵"""
-        # 32 bits per element
-        s_bytes = math.ceil(len(coefficients) / 32)
-        # :B
-        if s_bytes > 1:
-            raise NotImplementedError('Ups..')
+
+        coefficients = coefficients.lstrip('0') # drop unused zero
+        self.degree = len(coefficients) - 1 # last known zero
+
+        s_bytes = math.ceil(len(coefficients) / PolynomialZ2.SIZE) # elements in list
+        index = 0
+
         # get int representation
-        self.coefficients = int(coefficients, 2)
-        self.bin_representation = coefficients
+        for i in range(1, s_bytes):
+            self.coefficients.append(int(coefficients[index:PolynomialZ2.SIZE*i], 2)) # get 32 byte group
+            index = i*PolynomialZ2.SIZE # bytes loaded
 
-    def degree(self):
-        return len(self.coefficients_vector()) - 1
+        self.coefficients.append(int(coefficients[index:], 2)) # less significative ones
+        self.bin_representation = coefficients # duh
+        self.__length = s_bytes # performance
 
-    # XOR
+    def __update_values(self):
+        """ Will update a polynomial attributes based on its list of coefficients """
+        # drop left zero
+        left_zero = True
+        i = 0
+
+        while left_zero and i < self.__length:
+            if self.coefficients[i] == 0:
+                i += 1
+            else:
+                left_zero = False
+
+        # was zero
+        if i == self.__length:
+            self.coefficients = [0]
+            self.degree = 0
+            self.bin_representation = '0'
+            self.__length = 1
+            return
+
+        self.coefficients = self.coefficients[i:]
+        self.__length = self.__length - i
+
+        # degree
+        last_group = len(bin(self.coefficients[0]).lstrip('-0b')) - 1
+        self.degree = PolynomialZ2.SIZE*(self.__length - 1) + last_group
+
+        # bin
+        br_str = ''
+        for i in self.coefficients:
+            s = bin(i).lstrip('-0b')
+            l = len(s)
+            if l < PolynomialZ2.SIZE:
+                br_str += '0'*(PolynomialZ2.SIZE - l)
+            br_str += s
+        self.bin_representation = br_str.lstrip('0')
+
     def sum(self, poly):
-        p = PolynomialZ2()
-        p.coefficients = self.coefficients ^ poly.coefficients
+        p = PolynomialZ2() # polynomial init
+        p.coefficients, p.__length = xor(self.coefficients, self.__length, poly.coefficients, poly.__length)
+        p.__update_values()
 
         return p
 
     def product(self, poly):
-        # degree of poly
-        degree = self.degree()
+        # degree of poly tell us xtimes
+        degree = self.degree
 
         p = PolynomialZ2()
-
-        # product of every term
-        for c in self.bin_representation:
-            if c == '1':
-                p.coefficients = p.coefficients ^ (poly.coefficients << degree)
-            degree -= 1
+        # so....
 
         return p
 
+    """
     # self % poly
     def remainder(self, poly):
         # get degree of both
@@ -112,13 +155,6 @@ class PolynomialZ2(Polynomial):
 
         return p
 
-    # Safe poly.coefficients_vector
-    # Unsafe poly.bin_representation
-    def coefficients_vector(self):
-        if self.bin_representation == '':
-            self.bin_representation = bin(self.coefficients).lstrip('-0b')
-        return self.bin_representation
-
     # String representation
     def __str__(self):
         degree = len(self.coefficients_vector()) - 1
@@ -130,3 +166,49 @@ class PolynomialZ2(Polynomial):
                 string += c
             degree -= 1
         return string
+
+    """
+
+""" Bitwise methods for arrays """
+def xor(array, length, sarray, slength):
+    """ Will xor self.coefficients with @param array list with @param length elements """
+    index_self = slength - 1
+    index_poly = length - 1
+
+    # result
+    length = max([slength, length])
+    index_p = length - 1
+    coeff = [0]*length
+
+    while index_poly >= 0 and index_self >= 0:
+        coeff[index_p] = array[index_poly] ^ sarray[index_self]
+        index_poly -= 1
+        index_self -= 1
+        index_p -= 1
+
+    if index_poly > index_self:
+        while index_poly >= 0:
+            coeff[index_poly] = array[index_poly]
+            index_poly -= 1
+    elif index_self > index_poly:
+        while index_self >= 0:
+            coeff[index_self] = sarray[index_self]
+            index_self -= 1
+
+    return coeff, length
+
+#
+#   Panic.
+#
+def left_shift(array, length):
+    coeff = [0] * length # result
+
+    overflow = 0
+    i = length - 1
+
+    while i >= 0:
+        coeff[i] = (array[i] << 1) ^ overflow
+        overflow = (array[i] >> PolynomialZ2.SIZE) & 1
+        i -= 1
+
+    return coeff
