@@ -43,6 +43,7 @@ class Polynomial(object):
         mx = Polynomial(self.prime, [-1, 0])
         # i = 1 to floor(m/2)
         for i in range(math.floor(self.degree/2)):
+            print(i)
         #   u(x) = u(x)^p mod f(x)
             upx = Polynomial(self.prime, list(ux.coefficients))
             for i in range(1, self.prime):
@@ -67,7 +68,7 @@ class Polynomial(object):
         if self.degree <= poly.degree:
             bx, ax = self, poly
         rx = ax.remainder(bx)
-
+        
         return bx.gcd(rx)
 
     def remainder(self, poly):
@@ -91,7 +92,7 @@ class Polynomial(object):
             rx += [0]*(self.degree - poly.degree) # eq to multiply
         rx = [(-1)*x for x in rx] # substraction
         rx = sum_coefficients_list(self.coefficients, self.degree, rx, len(rx)-1, self.prime)
-
+        
         # drop 0 not used
         dindex = 0
         for j in rx:
@@ -102,8 +103,10 @@ class Polynomial(object):
         if dindex == len(rx):
             dindex = -1 # all were 0.. so we get the last
 
+        #print("residuo sig",self.degree, poly.degree, rx[dindex:])
+        #Polynomial(self.prime, rx[dindex:]).remainder(poly)
         return Polynomial(self.prime, rx[dindex:]).remainder(poly)
-
+         
     def __eq__(self, other):
         if type(self) is type(other):
             return [x % prime for x in self.coefficients] == [x % prime for x in other.coefficients] and self.prime == other.prime
