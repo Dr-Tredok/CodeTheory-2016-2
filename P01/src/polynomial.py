@@ -1,21 +1,72 @@
 import math
+from .putils import *
 
-class Polynomial(object):
-    """A polynomial w/coefficients in Zp"""
-    def __init__(self, prime, coefficients = []):
-        super(Polynomial, self).__init__()
-        self.prime = prime
+# How to create
+def create_poly(prime, coefficients):
+    if prime == 2:
+        return PolynomialZ2(coefficients)
+    elif prime > 2:
+        return Polynomial(prime, list(map(lambda x: int(x), coefficients)))
+    else:
+        raise Exception("Not a valid prime!")
+
+
+""" Abstract Class """
+class PolynomialZp(object):
+    def __init__(self, prime, coefficients):
+        """ Prime and string coefficients"""
+        self.prime = prime;
+        self.coefficients = coefficients;
+
+    def product(self, poly):
+        pass
+
+    def sum(self, poly):
+        pass
+
+    def is_irreducible(self):
+        pass
+
+    def remainder(self, poly):
+        pass
+
+    def is_neutral(self):
+        pass
+
+    def scalar_product(self, n):
+        pass
+
+    def __eq__(self, obj):
+        pass
+
+    def __ne__(self, other):
+            return not self.__eq__(other)
+
+    def __str__(self):
+        return "Im a Polynomial"
+
+class Polynomial(PolynomialZp):
+    """A polynomial w/coefficients in Zp, p > 2"""
+    def __init__(self, prime, coefficients):
+        super(Polynomial, self).__init__(prime, coefficients)
+        if coefficients == []:
+            raise Exception("No coefficients given")
         # [1, 2, 3] := x³ + 2x² + 3
-        self.coefficients = coefficients
-        self.degree = len(coefficients) - 1
+        self.coefficients = drop_zeros(coefficients)
+        self.degree = len(self.coefficients) - 1
 
     def sum(self, poly):
         """Return the sum self + poly over Zp[x]"""
         if self.prime != poly.prime:
             raise Exception("!= prime")
 
-        return Polynomial(self.prime, sum_coefficients_list(self.coefficients, self.degree, poly.coefficients, poly.degree, self.prime))
+        return Polynomial(self.prime, sum_lists(self.coefficients, self.degree, poly.coefficients, poly.degree, self.prime))
 
+    def is_neutral(self):
+        return self.coefficients == [1]
+
+    def scalar_product(self, n):
+        return Polynomial(self.prime, scprod_list(self.coefficients, n, self.prime))
 
     def product(self, poly):
         """Return the product self * poly over Zp[x]"""
@@ -26,11 +77,11 @@ class Polynomial(object):
         sdegree = self.degree # how many zeroes will be?
         rindex = self.degree + poly.degree
 
-        result = [(self.coefficients[0]*y)%self.prime for y in poly.coefficients] + [0]*sdegree
+        result = scprod_list(poly.coefficients, self.coefficients[0], self.prime) + [0]*sdegree
 
         for j in range(sdegree):
             sdegree -= 1
-            result = sum_coefficients_list([self.coefficients[sindex]*y for y in poly.coefficients] + [0]*sdegree, poly.degree + sdegree, result, rindex, self.prime)
+            result = sum_lists(scprod_list(poly.coefficients, self.coefficients[sindex], self.prime) + [0]*sdegree, poly.degree + sdegree, result, rindex, self.prime)
             sindex += 1
 
         return Polynomial(self.prime, result)
@@ -43,14 +94,13 @@ class Polynomial(object):
         mx = Polynomial(self.prime, [-1, 0])
         # i = 1 to floor(m/2)
         for i in range(math.floor(self.degree/2)):
-            print(i)
         #   u(x) = u(x)^p mod f(x)
             upx = Polynomial(self.prime, list(ux.coefficients))
             for i in range(1, self.prime):
                 ux = ux.product(upx)
             ux = ux.remainder(self)
         #   d(x) = mcd(f(x), u(x) - x)
-            dx = self.gcd(Polynomial(self.prime, sum_coefficients_list(ux.coefficients, ux.degree, mx.coefficients, 1, self.prime)))
+            dx = self.gcd(Polynomial(self.prime, sum_lists(ux.coefficients, ux.degree, mx.coefficients, 1, self.prime)))
         #   d(x) != 1 -> Reducible
             if dx.coefficients != [1]:
                 return False
@@ -68,7 +118,7 @@ class Polynomial(object):
         if self.degree <= poly.degree:
             bx, ax = self, poly
         rx = ax.remainder(bx)
-        
+
         return bx.gcd(rx)
 
     def remainder(self, poly):
@@ -90,30 +140,15 @@ class Polynomial(object):
         rx = list(poly.coefficients) # original
         if self.degree > poly.degree:
             rx += [0]*(self.degree - poly.degree) # eq to multiply
-        rx = [(-1)*x for x in rx] # substraction
-        rx = sum_coefficients_list(self.coefficients, self.degree, rx, len(rx)-1, self.prime)
-        
-        # drop 0 not used
-        dindex = 0
-        for j in rx:
-            if j == 0:
-                dindex += 1
-            else:
-                break
-        if dindex == len(rx):
-            dindex = -1 # all were 0.. so we get the last
+        rx = scprod_list(rx, -1, self.prime)
+        rx = sum_lists(self.coefficients, self.degree, rx, len(rx)-1, self.prime)
 
-        #print("residuo sig",self.degree, poly.degree, rx[dindex:])
-        #Polynomial(self.prime, rx[dindex:]).remainder(poly)
-        return Polynomial(self.prime, rx[dindex:]).remainder(poly)
-         
+        return Polynomial(self.prime, rx).remainder(poly)
+
     def __eq__(self, other):
         if type(self) is type(other):
-            return [x % prime for x in self.coefficients] == [x % prime for x in other.coefficients] and self.prime == other.prime
+            return [x % self.prime for x in self.coefficients] == [x % self.prime for x in other.coefficients] and self.prime == other.prime
         return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
     def __str__(self):
         s = ''
@@ -125,29 +160,6 @@ class Polynomial(object):
                 s += str(self.coefficients[i])
             degree -= 1
         return s
-
-
-def sum_coefficients_list(slist, sindex, plist, pindex, prime):
-    rindex = max(sindex, pindex)
-
-    result = [0] * (rindex + 1)
-
-    while sindex >= 0 and pindex >= 0:
-        result[rindex] = (slist[sindex] + plist[pindex]) % prime
-        rindex -= 1
-        pindex -= 1
-        sindex -= 1
-
-    if sindex > pindex:
-        while sindex >= 0:
-            result[sindex] = slist[sindex]
-            sindex -= 1
-    elif pindex > sindex:
-        while pindex >= 0:
-            result[pindex] = plist[pindex]
-            pindex -= 1
-
-    return result
 
 class PolynomialZ2(object):
     """A Polynomial w/coefficients in Z2"""
