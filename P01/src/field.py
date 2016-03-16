@@ -18,6 +18,9 @@ class FqField(object):
         alpha = create_poly(self.prime, '10')
         self.elements = [create_poly(self.prime, '0'), create_poly(self.prime, '1'), alpha]
 
+        if self.gpolynomial.degree < self.exponent:
+            raise Exception("Nope. Nope. Nope.")
+
         if not self.gpolynomial.is_irreducible():
             raise Exception("Reducible polynomial")
 
@@ -27,14 +30,13 @@ class FqField(object):
             n = self.elements[-1].product(alpha).remainder(self.gpolynomial)
             self.elements.append(n)
             if n.is_neutral():
-                raise Exception("Ooops..");
+                raise Exception("Ooops.. neutral before");
 
     def list_elements(self):
-        for i in self.elements:
-            print(i)
+        return list(self.elements)
 
     def get_isum(self, poly):
-        return self.elements.index(poly.scalar_product(-1))
+        return self.elements[self.elements.index(poly.scalar_product(-1))]
 
     # alpha^i * alpha^(q - 1 - i) = alpha^(q - 1 mod q-1) = alpha^0 = 1
     def get_iproduct(self, poly):
@@ -50,3 +52,7 @@ class FqField(object):
 
     def product(self, poly1, poly2):
         return poly1.product(poly2)
+
+    def reduce(self, string):
+        poly = create_poly(self.prime, string)
+        return poly.remainder(self.gpolynomial)
