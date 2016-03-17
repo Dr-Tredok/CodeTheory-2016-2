@@ -23,6 +23,7 @@ def sum_lists(slist, sindex, plist, pindex, prime):
 def scprod_list(l, n, p):
     return [(n*x)%p for x in l]
 
+# drop left zeros from a list
 def drop_zeros(l):
     # drop 0 not used
     dindex = 0
@@ -32,15 +33,24 @@ def drop_zeros(l):
         if j == 0:
             dindex += 1
         else:
-            length -= dindex
             break
-            
+
     if dindex == length:
         length = 1
         dindex = -1 # all were 0.. so we get the last
+    else:
+        length -= dindex
 
     return l[dindex:], length
 
+# drop left zeros from a string
+def drop_str_zeros(string):
+    string = string.lstrip('-0b')
+    if string == '':
+        return '0'
+    return string
+
+# xor every term of slist and plist
 def xor_lists(slist, index_self, plist, index_poly):
     """ Will xor slist with plist """
 
@@ -65,6 +75,7 @@ def xor_lists(slist, index_self, plist, index_poly):
 
     return coeff, length
 
+# << 1 every term of slist (may be overflow)
 def left_shift_list(slist, slength, size):
     coeff = [0] * slength # result
 

@@ -3,12 +3,18 @@ from .putils import *
 
 # Returns a PolynomialZp
 # Check if are numeric and apply % prime
-# empty string is zero
+# empty coefficients = zero
 def create_poly(prime, coefficients):
+    try:
+        coefficients = coefficients.split(' ')
+        coefficients = [int(x) % prime for x in coefficients]
+    except ValueError:
+        raise Exception("Not a valid string")
+
     if prime == 2:
-        return PolynomialZ2(coefficients)
+        return PolynomialZ2(''.join([str(x) for x in coefficients]))
     elif prime > 2:
-        return Polynomial(prime, list(map(lambda x: int(x), coefficients)))
+        return Polynomial(prime, coefficients)
     else:
         raise Exception("Not a valid prime!")
 
@@ -62,7 +68,7 @@ class Polynomial(PolynomialZp):
             return
         # [1, 2, 3] := x³ + 2x² + 3
         self.coefficients, self.degree = drop_zeros(coefficients)
-        self.degree -= 1
+        self.degree -= 1 # starts with degree zero
 
     def sum(self, poly):
         """Return the sum self + poly over Zp[x]"""
@@ -81,11 +87,11 @@ class Polynomial(PolynomialZp):
 
         sindex = 1 # list entry
         sdegree = self.degree # how many zeroes will be?
-        rindex = self.degree + poly.degree
+        rindex = self.degree + poly.degree # final degree
 
         result = scprod_list(poly.coefficients, self.coefficients[0], self.prime) + [0]*sdegree
 
-        for j in range(sdegree):
+        for j in range(sdegree): # i dont even remember why sdegree times
             sdegree -= 1
             result = sum_lists(scprod_list(poly.coefficients, self.coefficients[sindex], self.prime) + [0]*sdegree, poly.degree + sdegree, result, rindex, self.prime)
             sindex += 1
@@ -108,13 +114,16 @@ class Polynomial(PolynomialZp):
         #   d(x) = mcd(f(x), u(x) - x)
             dx = self.gcd(ux.sum(mx))
         #   d(x) != 1 -> Reducible
-            if dx.coefficients != [1]:
+            if dx.degree != 0: # fx has a non-constant divisor
                 return False
         # end
         # -> irreducible
         return True
 
     def gcd(self, poly):
+        if self.prime != poly.prime:
+            raise Exception("!= prime")
+
         if self.coefficients == [0]:
             return Polynomial(self.prime, list(poly.coefficients))
         if poly.coefficients == [0]:
@@ -169,7 +178,7 @@ class PolynomialZ2(PolynomialZp):
 
     def __init__(self, coefficients = None):
         super(PolynomialZ2, self).__init__(2)
-        if coefficients is None or coefficients == '0': # default is zero
+        if coefficients is None: # default is zero
             self.coefficients = [0]
             self.degree = 0
             self.__length = 1 # list length (different from degree since every entry is SIZE bits)
@@ -179,22 +188,21 @@ class PolynomialZ2(PolynomialZp):
 
     def __set_poly(self, coefficients):
         """@param coefficients is a string '100101' equiv to 1 + x² + x⁵"""
-        coefficients = coefficients.lstrip('-0') # drop unused zero
+        coefficients = drop_str_zeros(coefficients) # drop unused zero
         bits_length = len(coefficients)
-        self.degree = bits_length - 1 # last entry different from zero
+        self.degree = bits_length - 1 # starts with degree zero
 
         s_bytes = math.ceil(bits_length / PolynomialZ2.SIZE) # elements in list
         self.__length = s_bytes # performance
 
         index = 0
-        overflow = bits_length - (s_bytes - 1)*PolynomialZ2.SIZE
+        overflow = bits_length - (s_bytes - 1)*PolynomialZ2.SIZE # bits not in a SIZE group
         # get int representation
         if overflow > 0:
             self.coefficients.append(int(coefficients[0:overflow], 2))
             index = overflow
             s_bytes -= 1
         for i in range(0, s_bytes):
-            #print(index, index+PolynomialZ2.SIZE)
             self.coefficients.append(int(coefficients[index:PolynomialZ2.SIZE+index], 2)) # get SIZE byte group
             index += PolynomialZ2.SIZE # bytes loaded
 
@@ -204,7 +212,7 @@ class PolynomialZ2(PolynomialZp):
         # bin
         br_str = ''
         for i in self.coefficients:
-            s = bin(i).lstrip('-0b')
+            s = drop_str_zeros(bin(i))
             l = len(s)
             if l < PolynomialZ2.SIZE:
                 br_str += '0'*(PolynomialZ2.SIZE - l)
@@ -215,13 +223,8 @@ class PolynomialZ2(PolynomialZp):
         """ Will update a polynomial attributes based on its list of coefficients """
         # drop left zero
         self.coefficients, self.__length = drop_zeros(self.coefficients)
-
-        if self.coefficients == [0]:
-            self.degree = 0
-            return
-
         # degree
-        last_group = len(bin(self.coefficients[0]).lstrip('-0b')) - 1
+        last_group = len(drop_str_zeros(bin(self.coefficients[0]))) - 1
         self.degree = PolynomialZ2.SIZE*(self.__length - 1) + last_group
 
     def __clone(self):
@@ -232,6 +235,9 @@ class PolynomialZ2(PolynomialZp):
         return p
 
     def sum(self, poly):
+        if self.prime != poly.prime:
+            raise Exception("!= prime")
+
         p = PolynomialZ2() # polynomial init
         p.coefficients, p.__length = xor_lists(self.coefficients, self.__length-1, poly.coefficients, poly.__length-1)
         p.__update_values()
@@ -239,11 +245,14 @@ class PolynomialZ2(PolynomialZp):
         return p
 
     def product(self, poly):
+        if self.prime != poly.prime:
+            raise Exception("!= prime")
+
         # degree of poly tell us xtimes
         degree = self.degree
         p = PolynomialZ2()
 
-        for c in self.__str_value():
+        for c in self.__str_value(): # ñera
             if c == '1':
                 shift = list(poly.coefficients)
                 length = poly.__length
@@ -262,6 +271,9 @@ class PolynomialZ2(PolynomialZp):
             return PolynomialZ2()
 
     def remainder(self, poly):
+        if self.prime != poly.prime:
+            raise Exception("!= prime")
+
         # get degree of both
         degree_poly = poly.degree
         degree = self.degree
@@ -284,7 +296,7 @@ class PolynomialZ2(PolynomialZp):
         p.coefficients, p.__length = xor_lists(self.coefficients, self.__length - 1, p.coefficients, p.__length - 1)
         p.__update_values()
 
-        return p
+        return p.remainder(poly)
 
     def is_irreducible(self):
         """Return True if self is irreducible in Z2[x]"""
@@ -294,7 +306,7 @@ class PolynomialZ2(PolynomialZp):
         mx = PolynomialZ2('-10')
         # i = 1 to floor(m/2)
         for i in range(math.floor(self.degree/2)):
-        #   u(x) = u(x)^p mod f(x)
+        #   u(x) = u(x)^2 mod f(x)
             ux = ux.product(ux)
             ux = ux.remainder(self)
         #   d(x) = mcd(f(x), u(x) - x)
@@ -307,6 +319,9 @@ class PolynomialZ2(PolynomialZp):
         return True
 
     def gcd(self, poly):
+        if self.prime != poly.prime:
+            raise Exception("!= prime")
+
         if self.coefficients == [0]:
             return poly.__clone()
         if poly.coefficients == [0]:
@@ -324,7 +339,7 @@ class PolynomialZ2(PolynomialZp):
     def __str__(self):
         degree = self.degree
         string = ''
-        #print("str()", self.degree)
+
         for c in self.__str_value():
             if c == '1' and degree > 0:
                 string += 'x^' + str(degree) + ' + '
@@ -332,3 +347,8 @@ class PolynomialZ2(PolynomialZp):
                 string += c
             degree -= 1
         return string
+
+    def __eq__(self, other):
+        if type(self) is type(other):
+            return self.coefficients == other.coefficients and self.prime == other.prime
+        return False

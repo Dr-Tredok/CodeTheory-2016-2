@@ -17,9 +17,11 @@ def generate_field(p, n, f):
         campoFinito = FqField(prime, expnt, f)
         return campoFinito.list_elements()
     except ValueError:
-        print("Ingresa valores numéricos")
+        print(p, n, ", really? I asked for numbers.")
     except Exception as e:
         print(e.args)
+
+    campoFinito = None
     return []
 
 # operations = ["+", "*", "ia", "im", "**"]
@@ -27,12 +29,16 @@ def op_polynomial(poly1, poly2, n):
     global campoFinito
 
     try:
+        if campoFinito is None:
+            raise Exception("I dont have a field! Generate one!")
+
         a = campoFinito.reduce(poly1)
-        b = campoFinito.reduce(poly2)
-        
+
         if n == 0:
+            b = campoFinito.reduce(poly2)
             return campoFinito.sum(a, b)
         elif n == 1:
+            b = campoFinito.reduce(poly2)
             return campoFinito.product(a, b)
         elif n == 2:
             return campoFinito.get_isum(a)
@@ -46,4 +52,16 @@ def op_polynomial(poly1, poly2, n):
         print(e.args)
     return None
 
-MainApp(generate_field, op_polynomial).run()
+def op_from_alpha(alpha):
+    try:
+        alpha = int(alpha)
+        if campoFinito is None:
+            raise Exception("I dont have a field! Generate one!")
+
+        return campoFinito.inv_alpha(alpha)
+    except ValueError:
+        print("Not a valid alpha")
+    except Exception as e:
+        print(e.args)
+
+MainApp(generate_field, op_polynomial, op_from_alpha).run()

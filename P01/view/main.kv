@@ -1,5 +1,5 @@
 <Controller>:
-    rows: 3
+    rows: 4
     cols: 1
     BoxLayout:
         orientation: 'horizontal'
@@ -35,18 +35,36 @@
         size_hint_y: None
         height: 30
         TextInput:
-            text: 'Poly1'
+            text: '0'
             id: poly1
         Button:
             id: operation
-            text: '>'
+            text: '+'
             on_release: root.select()
         TextInput:
             id: poly2
-            text: 'Poly2'
+            text: '0'
         Button:
             text: '='
             on_press: root.do_operation()
         Label:
             id: result
+            text: '0'
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: 30
+        TextInput:
+            text: '0'
+            size_hint_x: None
+            width: 50
+            id: alpha
+        Button:
+            text: 'Inversos'
+            on_press: root.ifrom_alpha()
+        Label:
+            id: iadd
+            text: '0'
+        Label:
+            id: imult
             text: '0'
