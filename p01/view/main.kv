@@ -1,0 +1,70 @@
+<Controller>:
+    rows: 4
+    cols: 1
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: 30
+        Label:
+            text: 'p='
+        TextInput:
+            id: prime_inpt
+            text: ''
+        Label:
+            text: 'n='
+        TextInput:
+            id: exp_inpt
+            text: ''
+        Label:
+            text: 'f(x)='
+        TextInput:
+            id: fx_inpt
+            text: ''
+        Button:
+            text: 'Generar'
+            on_press: root.generate_field()
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: None
+        height: 240
+        ListView:
+            id: elements_field
+            item_strings: []
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: 30
+        TextInput:
+            text: '0'
+            id: poly1
+        Button:
+            id: operation
+            text: '+'
+            on_release: root.select()
+        TextInput:
+            id: poly2
+            text: '0'
+        Button:
+            text: '='
+            on_press: root.do_operation()
+        Label:
+            id: result
+            text: '0'
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: 30
+        TextInput:
+            text: '0'
+            size_hint_x: None
+            width: 50
+            id: alpha
+        Button:
+            text: 'Inversos'
+            on_press: root.ifrom_alpha()
+        Label:
+            id: iadd
+            text: '0'
+        Label:
+            id: imult
+            text: '0'
