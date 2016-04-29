@@ -48,23 +48,23 @@ def encode_msg(mword):
     mx = poly(bin(mword))
     aux = xnk.product(mx)
     px = aux.remainder(cq)
-    return aux.sum(px)
+    return aux.sum(px).coefficients[0]
 
 def decode_msg(rword):
-    if rword > 255: # > q^n - 1
+    if rword > 127: # > q^n - 1
         raise Exception("Not a valid message")
 
     rx = poly(bin(rword)) # will have an extra zero in left, dropped at init
     sx = rx.remainder(cq)
     if sx.coefficients == [0]:
-        return rx
+        return rx.coefficients[0] >> 3
     ex = scq[sx]
-    return rx.sum(ex)
+    return rx.sum(ex).coefficients[0] >> 3
 
 # test
-cx = encode_msg(10)
-print(cx.str_value())
-sx = decode_msg(115) # correct is 83
-print(sx.str_value())
-sx = decode_msg(83)
-print(sx.str_value())
+# cx = encode_msg(10)
+# print(cx.str_value())
+# sx = decode_msg(115) # correct is 83
+# print(sx.str_value())
+# sx = decode_msg(83)
+# print(sx.str_value())
