@@ -14,8 +14,8 @@ def encode_file(file_to, epoly):
     f = open('Code-Decode/encode', 'wb')
     for byte in get_bytes(file_to):
         b = int.from_bytes(byte, byteorder = 'big')
-        fst = b & 15
-        snd = b >> 4 #takes 4 bits
+        fst = b & 15 #Takes first 4 bits
+        snd = b >> 4 #Takes Last 4 bits
         fstx = c.encode_msg(fst, epoly)
         sndx = c.encode_msg(snd, epoly)
 
