@@ -2,7 +2,7 @@
 
 Se consideran dos códigos cíclicos *Cq*, *Cn*, ideales de
 
-![alt text](https://github.com/Dr-Tredok/CodeTheory-2016-2/tree/master/P02/eqn/r.png "Reducción del campo")
+![alt text](eqn/r.png "Reducción del campo")
 
 donde
 
@@ -24,7 +24,7 @@ Dado el código  C = *< g(x) >* y el polinomio del mensaje *m(x)* se usa la codi
 
 Sea el polinomio asociado al mensaje:
 
-![alttext](https://github.com/Dr-Tredok/CodeTheory-2016-2/tree/master/P02/eqn/mword.png "Mensaje a codificar")
+![alt text](https://github.com/Dr-Tredok/CodeTheory-2016-2/tree/master/P02/eqn/mword.png "Mensaje a codificar")
 
 es decir, palabras de longitud 4.
 
@@ -36,7 +36,7 @@ El algoritmo para la codificación es:
 
 podemos ver que el polinomio codificado es:
 
- ![alttext](https://github.com/Dr-Tredok/CodeTheory-2016-2/tree/master/P02/eqn/cword.png "Palabra en el código")
+![alt text](https://github.com/Dr-Tredok/CodeTheory-2016-2/tree/master/P02/eqn/cword.png "Palabra en el código")
 
 es decir, el mensaje está contenido en las últimas entradas.
 
