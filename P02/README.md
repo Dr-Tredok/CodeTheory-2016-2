@@ -51,19 +51,19 @@ Dado el mensaje recibido *r(x)* se sigue el algoritmo:
 
 ## Implementación
 
-Se usa la implementación de polinomios definida en *src/polybomial*.
+Se usa la implementación de polinomios definida en *src/polynomial*.
 
 Ya que las palabras en el código son de longitud 7, basta un byte para su representación. Aprovechando esta cualidad, un hash de un polinomio es el entero que representan sus coeficientes.
 
-Al leer el archivo, por cada byte se obtienen dos conjuntos de 4 bits (mitad del bytestring) y se considera un mensaje a codificar. Para escribir el archivo codificado, se regresa la palabra de longitud 7 y se almacena como un byte completo (0 en el byte más significativo).
+Al leer el archivo, por cada byte se obtienen dos conjuntos de 4 bits (mitad del bytestring) y se considera un mensaje a codificar. Para escribir el archivo codificado, se regresa la palabra de longitud 7 y se almacena como un byte completo (0 en el bit más significativo).
 
-Para decodificar se leen dos bytes para obtener el byte asociado correspondiente.
+Para decodificar se leen dos bytes para obtener el byte original asociado a sus mensajes.
 
 ### Uso
 
 python3 main.py [option] [code] [file]
 
 donde
-  1. option: --encode para codificar [file], --decode para decodificarlo
+  1. option: --encode para codificar, --decode para decodificarlo
   2. code: --cq para usar el código *Cq*, en otro caso, --cn
   3. file: el archivo a procesar
