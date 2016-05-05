@@ -1,7 +1,4 @@
-from src.polynomial import PolynomialZ2 as poly
-# TODO agregar sindromes de las sumas? corrige mas errores
-# TODO devolver encode como byte
-#       valor hasta 127 => agrega 0 a la izq y al decodificar lo ignorará
+from .polynomial import PolynomialZ2 as poly
 
 # [7, 4, *] - codigos, F(2, 4)
 xnk = poly('1000')
@@ -41,30 +38,26 @@ s6 = x6.remainder(cn)
 scn = {s0: x0, s1: x1, s2: x2, s3: x3, s4: x4, s5: x5, s6: x6}
 
 # Codificacion/Decodificacion Sistematica
-def encode_msg(mword):
+def encode_msg(mword, ecq = True):
     if mword > 15: # > q^k - 1
         raise Exception("Not a valid message")
 
+    gx = cq if ecq else cn # polinomio que se usará
     mx = poly(bin(mword))
     aux = xnk.product(mx)
-    px = aux.remainder(cq)
-    return aux.sum(px).coefficients[0]
+    px = aux.remainder(gx)
+    return aux.sum(px).coefficients[0] # solo se usa un int para representarlos
 
-def decode_msg(rword):
+def decode_msg(rword, dcq = True):
     if rword > 127: # > q^n - 1
         raise Exception("Not a valid message")
 
-    rx = poly(bin(rword)) # will have an extra zero in left, dropped at init
-    sx = rx.remainder(cq)
-    if sx.coefficients == [0]:
-        return rx.coefficients[0] >> 3
-    ex = scq[sx]
-    return rx.sum(ex).coefficients[0] >> 3
+    gx = cq if dcq else cn # polinomio que se usará
+    sgx = scq if dcq else scn # errores asociados al polinomio
 
-# test
-# cx = encode_msg(10)
-# print(cx.str_value())
-# sx = decode_msg(115) # correct is 83
-# print(sx.str_value())
-# sx = decode_msg(83)
-# print(sx.str_value())
+    rx = poly(bin(rword)) # will have an extra zero in left, dropped at init
+    sx = rx.remainder(gx)
+    if sx.coefficients == [0]:
+        return rx.coefficients[0] >> 3 # regresa las ultimas entradas del polinomio
+    ex = sgx[sx] # error asociado
+    return rx.sum(ex).coefficients[0] >> 3 # regresar las ultimas entradas del polinomio
