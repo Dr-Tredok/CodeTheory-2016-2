@@ -1,8 +1,10 @@
 from polynomial import *
 from field import *
+from rs import *
 
 #Here is where the magic of reading the files is.
-gf = GF.aes()
+gf = GF.primitive()
+rs = RS(255, 223, 33, gf)
 
 def get_bytes(filename, chunksize = 1):
     with open(filename, "rb") as f:
@@ -11,21 +13,21 @@ def get_bytes(filename, chunksize = 1):
             yield chunk #returns the chunk
             chunk = f.read(chunksize) #gets a new chunk from the file
 
-def encode_file(file_to, epoly):
+def encode_file(file_to):
     f = open('encode', 'wb')
-    for msg in get_bytes(file_to, 223):
-        coefficients = [gf.reduce(msg[i]) for i in range(len(msg))]
-        poly = Polynomial(coefficients, gf)
-        assert(poly.degree < 223)
-        f.write(bytes(poly))
+    for msg in get_bytes(file_to, rs.k):
+        codeword = rs.encode(msg)
+        f.write(bytes(codeword))
     f.close()
     print("Codificado en Code-Decode/encode")
 
-def decode_file(file_to, dpoly):
-    f = open('Code-Decode/decode', 'wb') #reads the encoded file
-    for byte in get_bytes(file_to):
-        pass
+def decode_file(file_to):
+    f = open('decode', 'wb') #reads the encoded file
+    for cword in get_bytes(file_to, rs.n):
+        msg = rs.decode(cword)
+        f.write(bytes(msg))
     f.close()
     print("Decodificado en Code-Decode/decode")
 
-encode_file("io.py", None)
+#encode_file("io.py")
+decode_file("dec")

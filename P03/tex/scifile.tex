@@ -1,0 +1,326 @@
+% Use only LaTeX2e, calling the article.cls class and 12-point type.
+
+\documentclass[12pt]{article}
+
+% Users of the {thebibliography} environment or BibTeX should use the
+% scicite.sty package, downloadable from *Science* at
+% www.sciencemag.org/about/authors/prep/TeX_help/ .
+% This package should properly format in-text
+% reference calls and reference-list numbers.
+
+\usepackage{scicite}
+
+% Use times if you have the font installed; otherwise, comment out the
+% following line.
+
+\usepackage{times}
+
+% The preamble here sets up a lot of new/revised commands and
+% environments.  It's annoying, but please do *not* try to strip these
+% out into a separate .sty file (which could lead to the loss of some
+% information when we convert the file to other formats).  Instead, keep
+% them in the preamble of your main LaTeX source file.
+
+
+% The following parameters seem to provide a reasonable page setup.
+
+\topmargin 0.0cm
+\oddsidemargin 0.2cm
+\textwidth 16cm 
+\textheight 21cm
+\footskip 1.0cm
+
+
+%The next command sets up an environment for the abstract to your paper.
+
+\newenvironment{sciabstract}{%
+\begin{quote} }
+{\end{quote}}
+
+
+% If your reference list includes text notes as well as references,
+% include the following line; otherwise, comment it out.
+
+\renewcommand\refname{Bibliograf\'ia}
+
+% The following lines set up an environment for the last note in the
+% reference list, which commonly includes acknowledgments of funding,
+% help, etc.  It's intended for users of BibTeX or the {thebibliography}
+% environment.  Users who are hand-coding their references at the end
+% using a list environment such as {enumerate} can simply add another
+% item at the end, and it will be numbered automatically.
+
+\newcounter{lastnote}
+\newenvironment{scilastnote}{%
+\setcounter{lastnote}{\value{enumiv}}%
+\addtocounter{lastnote}{+1}%
+\begin{list}%
+{\arabic{lastnote}.}
+{\setlength{\leftmargin}{.22in}}
+{\setlength{\labelsep}{.5em}}}
+{\end{list}}
+
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+
+% Include your paper's title here
+
+\title{Reed-Solomon\\\small{Práctica 3}} 
+
+
+% Place the author information here.  Please hand-code the contact
+% information and notecalls; do *not* use \footnote commands.  Let the
+% author contact information appear immediately below the author names
+% as shown.  We would also prefer that you don't change the type-size
+% settings shown here.
+
+\author
+{\small{\textsc{Código}} -at- \href{https://github.com/Dr-Tredok/CodeTheory-2016-2/tree/master/P03}{GitHub}}
+
+% Include the date command, but leave its argument blank.
+
+\date{}
+
+
+
+%%%%%%%%%%%%%%%%% END OF PREAMBLE %%%%%%%%%%%%%%%%
+
+
+
+\begin{document} 
+
+% Double-space the manuscript.
+
+\baselineskip24pt
+
+% Make the title.
+
+\maketitle 
+
+
+
+% Place your abstract within the special {sciabstract} environment.
+
+\begin{sciabstract}
+  Codificación de $RS(255, 223)$ usando el polinomio:
+  \begin{align*}
+  g(x) = (x - \alpha )(x -\alpha^2)\ldots (x - \alpha^{32}) \in GF(256)[x]
+  \end{align*}
+  $RS(255, 223)$ es un $[n = 255, k = 223, d = 33]_{256} -$ código sobre $GF(256)$ con $\alpha$ un elemento primitivo.
+  \\\textit{Obs.} $deg(g) = 32 = n - k = d - 1 = 2 t = 2 \lfloor \frac{d - 1}{2} \rfloor$, i.e. corrige hasta $ t = 16$ errores. Además $g(x)$ es un factor de $x^n - 1$ por lo que se trata de un código cíclico. 
+\end{sciabstract}
+
+
+
+% In setting up this template for *Science* papers, we've used both
+% the \section* command and the \paragraph* command for topical
+% divisions.  Which you use will of course depend on the type of paper
+% you're writing.  Review Articles tend to have displayed headings, for
+% which \section* is more appropriate; Research Articles, when they have
+% formal topical divisions at all, tend to signal them with bold text
+% that runs into the paragraph, for which \paragraph* is the right
+% choice.  Either way, use the asterisk (*) modifier, as shown, to
+% suppress numbering.
+
+\section*{GF(256)}
+
+Formalmente,
+\begin{align*}
+GF(256) = \mathrm{F}_{2^8} = \mathrm{Z}_2[x] / <f(x)> \text{ donde } deg(f) = 8
+\end{align*}
+El campo puede ser generado con los siguientes polinomios (entre otros):
+\begin{itemize}
+\item \textbf{AES} $x^8 + x^4 + x^3 + x + 1$ con $\alpha = x + 1$ como raíz primitiva
+\item \textbf{Primitivo} $x^8 + x^4 + x^3 + x^2 + 1$ con $\alpha = x$ como raíz primitiva
+\end{itemize}
+Se representa un elemento en $GF(256)$ con un byte:
+\begin{align*}
+b_7b_6\ldots b_0 \mapsto b(x) = b_7 x^7 + b_6 x^6 + \ldots + b_1 x + b_0
+\end{align*}
+
+\section{Codificación}
+El código $RS(255, 223)$ toma bloques de 223 bytes y los codifica a un bloque de 255, 
+sea $m = (m_{k-1}, \ldots , m_1, m_0)\in F_{256}^k$ el mensaje a codificar y $m(x)$ el polinomio asociado:
+\begin{align*}
+m(x) = m_{k-1} x^{k-1} + \ldots + m_1 x + m_0
+\end{align*}
+Para codificar usando el polinomio $g(x)$
+\begin{enumerate}
+\item $s(x) = m(x) x^{32} = q(x) g(x) + p(x)$ donde $deg(s) < k - 1 + n - k = 254$ y $deg(p) < 32$
+\begin{align*}
+s(x) &= m_{222} x^{254} + \ldots + m_1 x^{33} + m_0 x^{32}
+\\p(x) &= p_{31} x^{31} + \ldots + p_1 x + p_0
+\end{align*}
+\item La palabra codificada $c(x) = s(x) - p(x) = q(x)g(x)$:
+\begin{align*}
+c(x) &= m_{222} x^{254} + \ldots + m_1 x^{33} + m_0 x^{32} + p_{31} x^{31} + \ldots + p_1 x + p_0
+\\c &= (m_{222}, \ldots , m_1, m_0, p_{31}, \ldots , p_1, p_0) \in F_{256}^n
+\end{align*}
+El polinomio codificado $c(x)$ contiene al mensaje $m(x)$ (Codificación Sistemática) y $2t$ entradas de verificación.
+\end{enumerate}
+Ya que $c(x) | g(x)$ ent $g(\alpha^i) = 0$ syss $c(\alpha^i) = 0$, donde $i = 1..2t$. Se tiene entonces:
+\begin{align*}
+c(x) \in RS(255, 223) \Leftrightarrow c(\alpha^i) = 0, \forall i = 1..2t
+\end{align*}
+
+
+\section{Decodificación}
+Sea $r(x) = c(x) + e(x)$ el mensaje recibido, donde $e(x) = e_{n-1} x^{n-1} + \ldots + e_1 x + e_0$ es el polinomio de errores en $r(x)$, i.e. $e_i$ es el error en la posición $i$.
+
+\textit{Obs.} Si $\omega (e) > t$ entonces la capacidad de corrección es excedida.
+
+\subsection{Síndromes}
+Definimos $s_i$ para $i = 1...2t$ como el síndrome para $\alpha_i$:
+\begin{align*}
+r(x) = q_i(x)(x - \alpha^i) + s_i(x)
+&\Leftrightarrow
+s_i(x) = q_i(x)(x - \alpha^i) + r(x)
+\\\text{evaluando en } & \alpha^i:
+\\s_i(\alpha^i) &= q_i(x)(\alpha^i - \alpha^i) + r(\alpha^i)
+\\&= r_{n-1}(\alpha^i)^{n-1} + \ldots + r_1 \alpha^i + r_0
+\end{align*}
+i.e. basta evaluar las potencias de $\alpha$ en $r(x)$ para encontrar los síndromes.
+
+Por otro lado,
+\begin{align*}
+r(\alpha^i) &= c(\alpha^i) + e(\alpha^i)
+\\ &= e(\alpha^i) = s_i
+\end{align*}
+por lo que si todos los síndromes son cero entonces no hay errores y $r(x) = c(x)$.
+
+\subsection{Localización de errores}
+Asumiendo que $v \leq t$ errores ocurren, podemos escribir:
+\begin{align*}
+e(x) = Y_1 x^{e_1} + \ldots + Y_v x^{e_v}
+\end{align*}
+donde $Y_1, \ldots , Y_v$ son los valores de los errores y $e_1, \ldots , e_v$ son las posiciones.
+
+Sabemos que $s_i = e(\alpha_i)$, por lo que se tiene:
+\begin{align*}
+s_i &= Y_1 (\alpha^i)^{e_1} + \ldots + Y_v (\alpha^i)^{e_v}
+\\ &= Y_1 X_1^i + \ldots + Y_v X_v^i
+\end{align*}
+A los términos $X_j = \alpha^{e_j}$ se les denomina localizadores de errores.
+
+Ya que las potencias de $\alpha$ son distintas, si se conocen los localizadores $X_j$ se pueden determinar las posiciones de los errores. Para ello se define $S(x) = s_1 + s_2 x + \ldots + s_{32} x^{31}$ y $\sigma (x)$ (localizador de errores):
+\begin{align*} 
+\sigma (x) &= \prod_{i=1}^v (1 - X_ix) 
+\\ &=\sum_{i = 0}^v \sigma_i x^i = 1 + \Lambda_1 x + \ldots + \Lambda_v x^v
+\end{align*}
+\textit{Obs. } Las raíces de $\sigma (x)$ son los inversos de los localizadores $X_j$. 
+
+Sea $\omega(x)$\footnote{Polinomio evaluador de errores} tal que $deg(\omega ) < t$ se obtiene la ecuación:
+\begin{align*}
+\omega (x) &\equiv \sigma (x) S(x)\mod x^{32}
+\\\Leftrightarrow \omega (x) &= \theta (x) x^{32} + \sigma (x) S(x)
+\end{align*}
+usando el algoritmo de Euclides para $x^{32}$ y $S(x)$ se obtienen residuos de la forma:
+\begin{align*}
+r_k(x) = a_k(x) x^{32} + b_k(x) S(x)
+\end{align*}
+cuando $deg(r_k) < 16$ pero $deg(r_{k-1}) \geq 16$ y $deg(b_k) \leq 16$ se cumple:
+\begin{align*}
+\sigma (x) &= b_k(0)^{-1}b_k(x) & \omega (x) &= b_k(0)^{-1}r_k(x)
+\end{align*}
+de donde se obtienen los localizadores de errores $X_1 = \alpha^{e_1}, \ldots , X_v  = \alpha^{e_v}$.
+\section{Corrección de errores}
+Siguiendo el algoritmo de Forney, dado $\sigma (x)$ el polinomio localizador de errores, se define:
+\begin{align*}
+\sigma '(x) &= \sum_{i=1}^v i \cdot \Lambda_i x^{i-1}
+\end{align*}
+Sean $e_1, \ldots , e_v$ las posiciones de los errores, para $i=1...v$ la magnitud del error $e_i$:
+\begin{align*}
+Y_i &= -\frac{\omega (X_i^{-1})}{\sigma '(X_i^{-1})}
+\end{align*}
+
+Entonces, la decodificación resulta:
+\begin{align*}
+r(x) &= c(x) + e(x)
+\\c(x) &= r(x) + e(x)
+\\ &= r(x) + Y_1x^{e_1} + \ldots + Y_vx^{e_v}
+\end{align*}
+
+
+\section{Ejemplo}\footnote{Código para este ejemplo en \texttt{test.py}}
+En $GF(16)$ se define $RS(15, 11)$ con capacidad de correción $2$.
+Sea $c(x) = x^8 + x^7 + x^6 + x^4 + 1$ el mensaje enviado y $r(x) = x^{12} + x^8 + x^7  + x^6 + 1$ el mensaje recibido.
+Los síndromes:
+\begin{align*}
+s_1 &= r(\alpha) = \alpha^6
+\\s_2 &= r(\alpha^2) = \alpha^{12}
+\\s_3 &= r(\alpha^3) = \alpha^4
+\\s_4 &= r(\alpha^4) = \alpha^9
+\end{align*}
+Se aplica el algoritmo de euclides para $S(x) = \alpha^9 x^3 + \alpha^4 x^2 + \alpha^{12}x + \alpha^6$ y $x^4$:
+\begin{align*}
+r_k(x) &= a_k(x) x^4 + b_k(x) S(x)
+\\\alpha^9 &= (\alpha^{13} x + \alpha^{13})x^4 + (\alpha^4 x^2+ \alpha^9 x+ \alpha^3 ) S(x)
+\end{align*}
+por lo que se tiene:
+\begin{align*}
+\sigma (x) &= \alpha^{11} b_k(x) =\alpha x^2 + \alpha^6 x + 1
+\\\omega (x) &= \alpha^{11} r_k(x) = \alpha^6
+\end{align*}
+
+Se encuentran las raíces de $\sigma (x)$:
+\begin{align*}
+\sigma (\alpha^3) &= \alpha\alpha^6 + \alpha^6\alpha^3 + 1 = \alpha^7 + \alpha^9 + 1  
+\\ &= (x^3 + x + 1) + (x^3 + x) + 1 = 0
+\\\sigma(\alpha^{11}) &= \alpha\alpha^{22 \mod 15} + \alpha^6\alpha^{11} + 1
+\\ &= (x^2 + 1) + x^2 + 1 = 0
+\end{align*}
+por lo que los inversos, son:
+\begin{align*}
+X_1 &= \alpha^{12} = (\alpha^3)^{-1}
+\\ X_2 &= \alpha^4 = (\alpha^{11})^{-1}
+\end{align*}
+es decir, hay errores en la posición $e_1 = 12$ y $e_2 = 4$. Para la correción se obtiene:
+\begin{align*}
+\sigma '(x) &= \alpha^6
+\\Y_i &= - \frac{\omega(X_i^{-1})}{\sigma '(X_i^{-1})}
+\\ &= - \frac{\alpha^6}{\alpha^6} = 1
+\end{align*}
+Se obtiene:
+\begin{align*}
+e(x) &= x^{e_1} + x^{e_2} = x^{12} + x^4
+\\ c(x) &=  x^{12} + x^8 + x^7  + x^6 + 1 + x^{12} + x^4
+\\ &= x^8 + x^7 + x^6 + x^4 + 1
+\end{align*}
+% Your references go at the end of the main text, and before the
+% figures.  For this document we've used BibTeX, the .bib file
+% scibib.bib, and the .bst file Science.bst.  The package scicite.sty
+% was included to format the reference numbers according to *Science*
+% style.
+
+
+\begin{thebibliography}{1}
+\bibitem{roman}
+  Roman, Steven.
+  \emph{Coding and Information Theory}.
+  Springer-Verlag,
+  1992
+\end{thebibliography}
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

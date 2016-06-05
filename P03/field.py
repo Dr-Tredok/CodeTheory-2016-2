@@ -1,7 +1,7 @@
 from polynomial import PolynomialZ2
 
 class GF(object):
-    """ Field Fq = Zn/<f(x)> w/deg(f) <= 31"""
+    """ Field Fq = Z2/<f(x)> w/deg(f) <= 31"""
     def __init__(self, exponent, poly, root):
         super(GF, self).__init__()
         self.gpolynomial = PolynomialZ2(poly)
@@ -40,11 +40,21 @@ class GF(object):
         j = self.pow[poly2]
         return self.elements[(i + j) % (self.len - 1)]
 
+    def inverse(self, poly):
+        i = self.pow[poly]
+        return self.elements[-i % (self.len - 1)]
     # creates a polynomial inside Fq
     def reduce(self, i):
         p = PolynomialZ2(i, bytestring=False)
         if p.degree >= self.gpolynomial.degree:
             p = p % self.gpolynomial
+        return p
+
+    def element(self, i):
+        """ Devuelve el polinomio asociado a un entero """
+        p = PolynomialZ2(i, bytestring=False)
+        if p.degree >= self.gpolynomial.degree:
+            raise ValueError() # debe ser un polinomio de grado menor
         return p
 
     def zero(self):
@@ -57,6 +67,15 @@ class GF(object):
         i = self.pow[poly1]
         j = self.pow[poly2]
         return self.elements[(i - j) % (self.len - 1)]
+
+    def oproduct(self, poly, i):
+        if i == 0:
+            return self.zero()
+        
+        prod = poly
+        for j in range(i - 1):
+            prod = prod + poly
+        return prod % self.gpolynomial
 
     def __len__(self):
         return self.len
@@ -75,3 +94,7 @@ class GF(object):
     @staticmethod
     def qr():
         return GF(2, '111', '10')
+
+    @staticmethod
+    def roman():
+        return GF(4, '10011', '10')

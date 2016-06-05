@@ -104,7 +104,7 @@ class Polynomial(object):
         self.field = field
 
     def is_zero(self):
-        return self.degree == 0 and self.coefficients[0] == 0
+        return all([e.is_zero() for e in self.coefficients])
 
     def clone(self):
         return Polynomial(list(self.coefficients), self.field)
@@ -131,14 +131,21 @@ class Polynomial(object):
         return Polynomial(coeff[fst:], self.field)
 
     def __sub__(self, poly):
-        poly.coefficients = [-a for a in poly.coefficients]
-        return self + poly
+        coefficients = [-a for a in poly.coefficients]
+        return self + Polynomial(coefficients, self.field)
+
+    def __neg__(self):
+        coefficients = [-a for a in self.coefficients]
+        return Polynomial(coefficients, self.field)
 
     def sproduct(self, element):
         coeff = [self.field.product(x, element) for x in self.coefficients]
         return Polynomial(coeff, self.field)
 
     def __mul__(self, poly):
+        if self.is_zero() or poly.is_zero():
+            return Polynomial.zero(self.field)
+
         degree = self.degree + poly.degree
         result = Polynomial.zero(self.field)
         a = self.degree
@@ -170,12 +177,54 @@ class Polynomial(object):
 
         return (q, r)
 
+    def eval(self, alpha):
+        """ Evalua un polinomio en alpha, raíz del campo """
+        cf = [self.coefficients[-1]]
+        x = alpha.clone() # elementos del campo deben ser clonables?
+        for i in range(2, self.degree + 2): # empezar en termino x^1 hasta x^n
+            if not self.coefficients[-i].is_zero():
+                cf.append(self.field.product(x,self.coefficients[-i]))
+            x = self.field.product(x, alpha) # elevar para la sig potencia
+        c = self.field.zero()
+        for v in cf:
+            c = self.field.sum(c, v)
+        return c
+
+    @staticmethod
+    def euclides(field, fx, gx, condition=lambda rk, r: rk.is_zero()):
+        assert(not fx.is_zero())
+        assert(not gx.is_zero())
+        assert(gx.degree <= fx.degree)
+
+        s0 = Polynomial([field.unity()], field)
+        s1 = Polynomial.zero(field)
+        t0 = Polynomial.zero(field)
+        t1 = Polynomial([field.unity()], field)
+        r0 = fx
+        r1 = gx
+        # rk = ak fx + bk gx
+        while True:
+            qk, rk = divmod(r0, r1)#r.__div_step(r0)
+            assert(rk == r0 - qk * r1)
+            sk = s0 - (qk * s1)
+            tk = t0 - (qk * t1)
+            assert(rk == fx * sk + gx * tk)
+            if condition(rk, r0):
+                break
+            r0 = r1
+            r1 = rk
+            s0 = s1
+            s1 = sk
+            t0 = t1
+            t1 = tk
+        return (sk, tk, rk)
+
     @staticmethod
     def zero(field):
         return Polynomial([field.zero()], field)
 
     def __str__(self):
-        return str(self.coefficients)
+        return str(self.coefficients)#str([int(i) for i in self.coefficients])
 
     def __eq__(self, other):
         if type(other) != type(self):
@@ -184,3 +233,8 @@ class Polynomial(object):
 
     def __bytes__(self):
         return bytes([int(i) for i in self.coefficients])
+
+    @staticmethod
+    def from_bytes(b, field):
+        coefficients = [field.element(b[i]) for i in range(len(b))] # cada entrada corresponde a un numero.. este se le pasa al campo y genera un elemento en él
+        return Polynomial(coefficients, field)

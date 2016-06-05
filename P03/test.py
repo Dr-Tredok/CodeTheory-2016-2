@@ -1,5 +1,6 @@
 from polynomial import *
 from field import *
+from rs import *
 
 class dummyField(object):
     """docstring for dummyField"""
@@ -10,23 +11,20 @@ class dummyField(object):
         return 0
 
     def sum(self, a, b):
-        return a + b
+        return (a + b) % 2
 
     def product(self, a, b):
-        return a * b
+        return (a * b) % 2
 
     def division(self, a, b):
-        return a/b
+        if a == 0 and b == 1:
+            return 0
+        elif a == 1 and b == 1:
+            return 1
+        raise ZeroDivisionError()
 
-f = dummyField()
-a = Polynomial([1, 0, 0, 1, 1], f)
-b = Polynomial([1, 1], f)
-
-gf = GF.qr()
-print(gf.pow)
-c = Polynomial([gf[0], gf[1], gf[0]], gf)
-d = Polynomial([gf[2]], gf)
-print("a", c)
-print("b", d)
-q, r = divmod(c, d)
-assert(r.is_zero())
+f = GF.roman()
+rs = RS(15, 11, 5, f)
+print(f.pow)
+rx = Polynomial([f.unity()] +  [f.zero()]*3 + [f.unity()]*3 + [f.zero()]*5 + [f.unity()], f)
+print(rs.decode(rx))

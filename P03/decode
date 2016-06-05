@@ -1,0 +1,13 @@
+from polynomial import *
+from field import *
+from rs import *
+
+#Here is where the magic of reading the files is.
+gf = GF.primitive()
+rs = RS(255, 223, 33, gf)
+ïdef get_bytes(filename, chunksize = 1):
+    with open(filename,zï¿½nLC1ž¿½)ï¿½ï¿½8ï¿½ï¿½ï¿½1ï¿½ "rb") as f:
+        chunk = f.read(chunksize) #read the bytes
+        while chunk:
+            yield chunk #eturns the chunk
+            chunk = f.read(chunksize) #gets a new chunk from the 
