@@ -3,12 +3,12 @@ class PolynomialZ2(object):
     def __init__(self, coefficients = None, bytestring = True):
         """ Inicializa un polinomio en Z2[X] de grado a lo más 31. Default: 0 """
         super(PolynomialZ2, self).__init__()
-        if coefficients is None:
+        if coefficients is None: # default es 0
             self.coefficients = 0
             self.degree = 0
-        elif bytestring:
+        elif bytestring: # construir desde string
             self.from_bytestring(coefficients)
-        else:
+        else: # numero asociado al byte
             self.coefficients = coefficients
             self.degree = coefficients.bit_length() - 1
 
@@ -19,13 +19,13 @@ class PolynomialZ2(object):
         # Limitar a un entero
         if lcoeff > 32:
             raise NotImplementedError()
-        self.coefficients = int(coefficients, 2)
+        self.coefficients = int(coefficients, 2) # polinomio
         self.degree = lcoeff - 1
 
     def __eq__(self, other):
         if type(other) is int:
-            return self.coefficients == other
-        if type(other) == type(self):
+            return self.coefficients == other # byte asociado
+        if type(other) == type(self): # comparar coeficientes
             return self.coefficients == other.coefficients
         raise TypeError()
 
@@ -79,8 +79,9 @@ class PolynomialZ2(object):
         return bin(self.coefficients) # only bits
 
     def __repr__(self):
-        return str(self)
+        return str(int(self)) # el entero asociado
 
+    # Aprovechando que se limita a un entero:
     def __hash__(self):
         return hash(self.coefficients)
 
@@ -96,7 +97,7 @@ class Polynomial(object):
         """
         super(Polynomial, self).__init__()
         if coefficients == []:
-            self.coefficients = [field.zero()]
+            self.coefficients = [field.zero()] # cero del campo
             self.degree = 0
         else:
             self.coefficients = coefficients
@@ -104,7 +105,7 @@ class Polynomial(object):
         self.field = field
 
     def is_zero(self):
-        return all([e.is_zero() for e in self.coefficients])
+        return all([e.is_zero() for e in self.coefficients]) # todos los coeficientes son cero
 
     def clone(self):
         return Polynomial(list(self.coefficients), self.field)
@@ -114,14 +115,14 @@ class Polynomial(object):
         coeff = []
         for i in range(1, degree + 2):
             if i > self.degree + 1:
-                coeff = poly.coefficients[:-i+1] + coeff
+                coeff = poly.coefficients[:-i+1] + coeff # no se ven afectados
                 break
             if i > poly.degree + 1:
                 coeff = self.coefficients[:-i+1] + coeff
                 break
-            coeff.insert(0, self.field.sum(self.coefficients[-i], poly.coefficients[-i]))
+            coeff.insert(0, self.field.sum(self.coefficients[-i], poly.coefficients[-i])) # grados mayores van al inicio
 
-        fst = 0
+        fst = 0 # eliminar ceros
         for i in range(degree + 1):
             if coeff[i] == 0:
                 fst += 1
@@ -131,14 +132,14 @@ class Polynomial(object):
         return Polynomial(coeff[fst:], self.field)
 
     def __sub__(self, poly):
-        coefficients = [-a for a in poly.coefficients]
+        coefficients = [-a for a in poly.coefficients] # inverso aditivo
         return self + Polynomial(coefficients, self.field)
 
-    def __neg__(self):
+    def __neg__(self): # inverso de todos los coeficientes
         coefficients = [-a for a in self.coefficients]
         return Polynomial(coefficients, self.field)
 
-    def sproduct(self, element):
+    def sproduct(self, element): # producto por un escalar del campo
         coeff = [self.field.product(x, element) for x in self.coefficients]
         return Polynomial(coeff, self.field)
 
@@ -159,7 +160,7 @@ class Polynomial(object):
 
         return result
 
-    def __divmod__(self, poly):
+    def __divmod__(self, poly): # euclides
         if poly.is_zero():
             raise ZeroDivisionError()
 
@@ -180,12 +181,12 @@ class Polynomial(object):
     def eval(self, alpha):
         """ Evalua un polinomio en alpha, raíz del campo """
         cf = [self.coefficients[-1]]
-        x = alpha.clone() # elementos del campo deben ser clonables?
+        x = alpha # inicial
         for i in range(2, self.degree + 2): # empezar en termino x^1 hasta x^n
             if not self.coefficients[-i].is_zero():
                 cf.append(self.field.product(x,self.coefficients[-i]))
             x = self.field.product(x, alpha) # elevar para la sig potencia
-        c = self.field.zero()
+        c = self.field.zero() # sumar los términos
         for v in cf:
             c = self.field.sum(c, v)
         return c
@@ -224,15 +225,26 @@ class Polynomial(object):
         return Polynomial([field.zero()], field)
 
     def __str__(self):
-        return str(self.coefficients)#str([int(i) for i in self.coefficients])
+        #str(self.coefficients)
+        s = ""
+        i = self.degree
+        for v in self.coefficients:
+            if not v.is_zero() and i >= 1:
+                s += "a^" + str(self.field.pow[v]) + "x^" + str(i) + " + "
+            if v.is_zero() and i == 0:
+                s += "0"
+            elif not v.is_zero() and i == 0:
+                s += "a^" + str(self.field.pow[v])
+            i -= 1
+        return s
 
     def __eq__(self, other):
         if type(other) != type(self):
             raise NotImplementedError()
-        return self.degree == other.degree and all([self.coefficients[i] == other.coefficients[i] for i in range(self.degree + 1)])
+        return self.degree == other.degree and all([self.coefficients[i] == other.coefficients[i] for i in range(self.degree + 1)]) # mismo grado y coeficientes
 
     def __bytes__(self):
-        return bytes([int(i) for i in self.coefficients])
+        return bytes([int(i) for i in self.coefficients]) # entero asociado a cada coeficiente, generar arreglo de bytes
 
     @staticmethod
     def from_bytes(b, field):

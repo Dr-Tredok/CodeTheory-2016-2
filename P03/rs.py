@@ -23,23 +23,44 @@ class RS(object):
         self.nk = P([field.unity()] + [field.zero()]*self.gx.degree, field) #x^2t
         assert(self.nk.degree == self.d - 1)
         self.t = int((self.d - 1) / 2) # capacidad de correción
-        #assert(self.t == self.nk / 2)
 
-    def encode(self, msg):
+    def encode_bytes(self, msg):
         assert(len(msg) <= self.k)
         poly = P.from_bytes(msg, self.field) # cargar polinomio asociado
+        return self.encode(poly)
+
+    def encode(self, poly):
         assert(poly.degree < self.k)
         sx = poly * self.nk # hacer espacio para entradas de verificación
         assert(sx.degree < self.n)
         qx, rx = divmod(sx, self.gx) # obtener residuo
         assert(rx.degree < self.gx.degree)
+        assert(sx == self.gx * qx + rx)
         cx = sx - rx # palabra codificada
+        self.pad_zeros(cx) # agregar ceros para evitar problemas...
         return cx
 
-    def decode(self, cword):#cword):
-        #assert(len(cword) <= self.n)
-        #poly = P.from_bytes(cword, self.field) # cargar bloque
-        poly = cword
+    def decode_bytes(self, cword):
+        assert(len(cword) <= self.n)
+        poly = P.from_bytes(cword, self.field) # cargar bloque
+        return self.decode(poly)
+
+    def pad_zeros(self, poly):
+        # Crea el bloque de 255.. si se codifica en menos, al leer se agarran bloques de otro mensaje
+        i = self.n - poly.degree - 1
+        poly.coefficients = [self.field.zero()]*i + poly.coefficients
+
+    def trim_zeros(self, poly):
+        fst = 0 # eliminar ceros anteriores
+        for i in range(len(poly.coefficients)):
+            if poly.coefficients[i] == 0:
+                fst += 1
+            else:
+                break
+        return P(poly.coefficients[fst:], self.field)
+
+    def decode(self, poly):
+        poly = self.trim_zeros(poly) # cargar polinomio real
         assert(poly.degree < self.n)
 
         sx = []
@@ -62,10 +83,8 @@ class RS(object):
         assert(self.field.product(b0, ib0) == self.field.unity())
         sigma = bk.sproduct(ib0) # bk(0)^-1 bk
         omega = rk.sproduct(ib0) # bk(0)^-1 rk
-        assert(sigma.degree <= self.t)
+        assert(sigma.degree <= self.t) # capacidad de corrección
         assert(omega.degree < self.t)
-        q, r = divmod(omega - sigma * gx, fx)
-        assert(r.is_zero())
 
         # ver raices...
         roots = [] # tendrá las posiciones de los errores
@@ -73,7 +92,7 @@ class RS(object):
             tmp = sigma.eval(self.field[i]) # raíces de sigma
             if tmp.is_zero():
                 roots.append((self.field[i], -i % (len(self.field) - 1))) # potencia a^i que fue raíz => inverso es la posición
-        print(roots)
+
         # nanai
         if roots == []:
             raise ValueError()
@@ -84,6 +103,8 @@ class RS(object):
         for i in sigma.coefficients: # derivada
             coeff.append(self.field.oproduct(i, exp))
             exp -= 1
+        coeff = coeff[:-1] # eliminar el termino cte
+
         fst = 0 # eliminar ceros anteriores
         for i in range(len(coeff)):
             if coeff[i] == 0:
@@ -94,10 +115,12 @@ class RS(object):
         assert(sigmap.degree < sigma.degree)
 
         # evaluate the error values:
-        errors = []
+        error = P.zero(self.field)
         for j in roots: # (error, position)
-            e = -self.field.division(omega.eval(j[0]), sigmap.eval(j[0]))
-            poly.coefficients[-j[1] - 1] = poly.coefficients[-j[1] - 1] + e # corregir error
+            yj = -self.field.division(omega.eval(j[0]), sigmap.eval(j[0])) #forney
+            ej = P([yj] + [self.field.zero()]*j[1], self.field) # error
+            error = error + ej # polinomio de errores
+        poly = poly + error # recuperar original
         # return codeword
         coeff = poly.coefficients[:-self.nk.degree] # mensaje en los k coeficientes de x^n-1 .. x^n-k
         decode =  P(coeff, self.field) # polinomio asociado
